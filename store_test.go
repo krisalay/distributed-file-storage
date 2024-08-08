@@ -19,34 +19,14 @@ func TestPathTransformFunc(t *testing.T) {
 	}
 }
 
-func TestStoreDeleteKey(t *testing.T) {
-	opts := StoreOpts{
-		PathTransformFunc: CASPathTransformFunc,
-	}
-
-	s := NewStore(opts)
-	key := "myspecialpicture"
-
-	data := []byte("some jpg bytes")
-	if err := s.WriteStream(key, bytes.NewReader(data)); err != nil {
-		t.Error(err)
-	}
-
-	if err := s.Delete(key); err != nil {
-		t.Error(err)
-	}
-}
-
 func TestStore(t *testing.T) {
-	opts := StoreOpts{
-		PathTransformFunc: CASPathTransformFunc,
-	}
+	s := newStore()
+	defer teardown(t, s)
 
-	s := NewStore(opts)
-	key := "myspecialpicture"
+	key := "foobar"
 
 	data := []byte("some jpg bytes")
-	if err := s.WriteStream(key, bytes.NewReader(data)); err != nil {
+	if err := s.Write(key, bytes.NewReader(data)); err != nil {
 		t.Error(err)
 	}
 
@@ -64,5 +44,25 @@ func TestStore(t *testing.T) {
 		t.Errorf("want %s have %s", data, b)
 	}
 
-	s.Delete(key)
+	if err := s.Delete(key); err != nil {
+		t.Error(err)
+	}
+
+	if ok := s.Has(key); ok {
+		t.Errorf("expected to not have key %s", key)
+	}
+}
+
+func newStore() *Store {
+	opts := StoreOpts{
+		PathTransformFunc: CASPathTransformFunc,
+	}
+
+	return NewStore(opts)
+}
+
+func teardown(t *testing.T, s *Store) {
+	if err := s.Clear(); err != nil {
+		t.Error(err)
+	}
 }
